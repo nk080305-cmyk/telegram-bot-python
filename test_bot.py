@@ -160,8 +160,9 @@ class TestHelpHandler:
         sent = {}
         bot_module.bot.send_message = lambda chat_id, text, **kw: sent.update(text=text)
         bot_module.cmd_help(self._make_message())
-        # At least the first catalogue brand should appear
-        assert 'Toyota' in sent['text']
+        # Every brand in the catalogue should appear in the help text
+        first_brand = list(CAR_CATALOGUE.keys())[0]
+        assert first_brand in sent['text']
 
 class TestStateConstants:
 
