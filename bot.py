@@ -1,41 +1,45 @@
-import random
+import telebot
 
-class CarRecommendationBot:
-    def __init__(self):
-        self.cars = [
-            {'brand': 'Toyota', 'model': 'Corolla', 'price': 80000, 'owners': 1},
-            {'brand': 'Mazda', 'model': '3', 'price': 95000, 'owners': 2},
-            {'brand': 'Hyundai', 'model': 'i30', 'price': 85000, 'owners': 1},
-            {'brand': 'Honda', 'model': 'Civic', 'price': 120000, 'owners': 3},
-            {'brand': 'Ford', 'model': 'Focus', 'price': 90000, 'owners': 2},
-            {'brand': 'Volkswagen', 'model': 'Golf', 'price': 110000, 'owners': 1}
-        ]
+API_TOKEN = 'YOUR_API_TOKEN'
+bot = telebot.TeleBot(API_TOKEN)
 
-    def recommend_cars(self, budget, owners, brand):
-        recommendations = []
-        for car in self.cars:
-            if car['price'] <= budget and car['owners'] <= owners:
-                if brand.lower() in car['brand'].lower():
-                    recommendations.append(car)
-                    if len(recommendations) == 3:
-                        break
-        return recommendations
+# Sample car recommendations based on user input
+car_recommendations = {
+    'Toyota': ['Toyota Corolla', 'Toyota Camry', 'Toyota RAV4'],
+    'Mazda': ['Mazda 3', 'Mazda CX-5', 'Mazda MX-5'],
+    'Hyundai': ['Hyundai Elantra', 'Hyundai Tucson', 'Hyundai i10'],
+    'Honda': ['Honda Civic', 'Honda Accord', 'Honda CR-V'],
+    'Ford': ['Ford Focus', 'Ford Fiesta', 'Ford Kuga'],
+    'Volkswagen': ['Volkswagen Golf', 'Volkswagen Passat', 'Volkswagen Tiguan'],
+    'BMW': ['BMW 3 Series', 'BMW X5', 'BMW X1'],
+    'Mercedes': ['Mercedes A-Class', 'Mercedes C-Class', 'Mercedes GLC'],
+    'Audi': ['Audi A3', 'Audi Q5', 'Audi A4'],
+    'Renault': ['Renault Clio', 'Renault Captur', 'Renault Koleos']
+}
 
-    def start_chat(self):
-        print("Welcome to the Car Recommendation Bot!")
-        budget = int(input("Please enter your budget in NIS: "))
-        owners = int(input("Please enter the maximum number of previous owners: "))
-        brand = input("Please enter the car brand you prefer (or leave empty for any): ")
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    bot.reply_to(message, "Welcome! I can help you find a car.\nPlease tell me your budget.")
 
-        suggestions = self.recommend_cars(budget, owners, brand)
+@bot.message_handler(func=lambda message: True, content_types=['text'])
+def ask_for_budget(message):
+    chat_id = message.chat.id
+    budget = message.text  # Extract user budget
+    bot.send_message(chat_id, "How many owners should the car have?")
 
-        if suggestions:
-            print("Here are your recommendations:")
-            for suggestion in suggestions:
-                print(f"{suggestion['brand']} {suggestion['model']} - {suggestion['price']} NIS")
-        else:
-            print("Sorry, we couldn't find any cars matching your criteria.")
+    @bot.message_handler(func=lambda message: True, content_types=['text'])
+    def ask_for_owners(owners_message):
+        owners = owners_message.text  # Extract number of owners
+        bot.send_message(chat_id, "What brand are you interested in? (e.g., Toyota, Mazda, etc.)")
 
-if __name__ == '__main__':
-    bot = CarRecommendationBot()
-    bot.start_chat()
+        @bot.message_handler(func=lambda message: True, content_types=['text'])
+        def recommend_cars(brand_message):
+            brand = brand_message.text  # Extract brand
+            recommendations = car_recommendations.get(brand, [])
+            if recommendations:
+                response = f"Based on your criteria, I recommend:\n" + "\n".join(recommendations[:3])
+            else:
+                response = "Sorry, I don't have recommendations for that brand."
+            bot.send_message(chat_id, response)
+
+bot.polling()
