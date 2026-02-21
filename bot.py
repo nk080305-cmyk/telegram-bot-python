@@ -1,45 +1,59 @@
-import telebot
+import os
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ConversationHandler, ContextTypes
 
-API_TOKEN = 'YOUR_API_TOKEN'
-bot = telebot.TeleBot(API_TOKEN)
+# Conversation states
+BUDGET, OWNERS, BRAND, RECOMMEND = range(4)
 
-# Sample car recommendations based on user input
-car_recommendations = {
-    'Toyota': ['Toyota Corolla', 'Toyota Camry', 'Toyota RAV4'],
-    'Mazda': ['Mazda 3', 'Mazda CX-5', 'Mazda MX-5'],
-    'Hyundai': ['Hyundai Elantra', 'Hyundai Tucson', 'Hyundai i10'],
-    'Honda': ['Honda Civic', 'Honda Accord', 'Honda CR-V'],
-    'Ford': ['Ford Focus', 'Ford Fiesta', 'Ford Kuga'],
-    'Volkswagen': ['Volkswagen Golf', 'Volkswagen Passat', 'Volkswagen Tiguan'],
-    'BMW': ['BMW 3 Series', 'BMW X5', 'BMW X1'],
-    'Mercedes': ['Mercedes A-Class', 'Mercedes C-Class', 'Mercedes GLC'],
-    'Audi': ['Audi A3', 'Audi Q5', 'Audi A4'],
-    'Renault': ['Renault Clio', 'Renault Captur', 'Renault Koleos']
-}
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text('Welcome to the Car Recommendation Bot! What is your budget?')
+    return BUDGET
 
-@bot.message_handler(commands=['start'])
-def send_welcome(message):
-    bot.reply_to(message, "Welcome! I can help you find a car.\nPlease tell me your budget.")
+async def budget(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    context.user_data['budget'] = update.message.text
+    await update.message.reply_text('How many owners have the car had?')
+    return OWNERS
 
-@bot.message_handler(func=lambda message: True, content_types=['text'])
-def ask_for_budget(message):
-    chat_id = message.chat.id
-    budget = message.text  # Extract user budget
-    bot.send_message(chat_id, "How many owners should the car have?")
+async def owners(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    context.user_data['owners'] = update.message.text
+    await update.message.reply_text('What car brand are you interested in?')
+    return BRAND
 
-    @bot.message_handler(func=lambda message: True, content_types=['text'])
-    def ask_for_owners(owners_message):
-        owners = owners_message.text  # Extract number of owners
-        bot.send_message(chat_id, "What brand are you interested in? (e.g., Toyota, Mazda, etc.)")
+async def brand(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    context.user_data['brand'] = update.message.text
+    # Recommend cars based on the input
+    budget = context.user_data['budget']
+    owners = context.user_data['owners']
+    brand = context.user_data['brand']
+    
+    # Placeholder recommendation logic
+    recommendations = f"Based on your inputs: Budget: {budget}, Owners: {owners}, Brand: {brand}, we recommend:\n1. Car A\n2. Car B\n3. Car C"
 
-        @bot.message_handler(func=lambda message: True, content_types=['text'])
-        def recommend_cars(brand_message):
-            brand = brand_message.text  # Extract brand
-            recommendations = car_recommendations.get(brand, [])
-            if recommendations:
-                response = f"Based on your criteria, I recommend:\n" + "\n".join(recommendations[:3])
-            else:
-                response = "Sorry, I don't have recommendations for that brand."
-            bot.send_message(chat_id, response)
+    await update.message.reply_text(recommendations)
+    return ConversationHandler.END
 
-bot.polling()
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text('Conversation cancelled.')
+    return ConversationHandler.END
+
+def main() -> None:
+    # Read token from environment variable
+    token = os.getenv('API_TOKEN')
+    application = ApplicationBuilder().token(token).build()
+
+    # Define the conversation handler
+    conv_handler = ConversationHandler(
+        entry_points=[CommandHandler('start', start)],
+        states={
+            BUDGET: [MessageHandler(filters.TEXT & ~filters.COMMAND, budget)],
+            OWNERS: [MessageHandler(filters.TEXT & ~filters.COMMAND, owners)],
+            BRAND: [MessageHandler(filters.TEXT & ~filters.COMMAND, brand)],
+        },
+        fallbacks=[CommandHandler('cancel', cancel)],
+    )
+
+    application.add_handler(conv_handler)
+    application.run_polling()
+
+if __name__ == '__main__':
+    main()
