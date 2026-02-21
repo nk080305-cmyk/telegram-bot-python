@@ -84,6 +84,23 @@ def cmd_start(message):
     )
 
 
+@bot.message_handler(commands=['help'])
+def cmd_help(message):
+    bot.send_message(
+        message.chat.id,
+        "🚗 *Car Recommendation Bot — commands:*\n\n"
+        "/start — begin a new car search\n"
+        "/restart — start over at any point\n"
+        "/cancel — cancel the current search\n"
+        "/help — show this message\n\n"
+        "During a search you will be asked for:\n"
+        "1️⃣ Budget (USD)\n"
+        "2️⃣ Number of previous owners\n"
+        f"3️⃣ Brand — choose from: {BRANDS_LIST}",
+        parse_mode='Markdown',
+    )
+
+
 @bot.message_handler(commands=['cancel'])
 def cmd_cancel(message):
     chat_id = message.chat.id

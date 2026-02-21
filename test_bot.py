@@ -50,6 +50,7 @@ def _load_bot_module():
 bot_module = _load_bot_module()
 get_recommendations = bot_module.get_recommendations
 CAR_CATALOGUE = bot_module.CAR_CATALOGUE
+normalize_brand = bot_module.normalize_brand
 
 
 # ---------------------------------------------------------------------------
@@ -124,9 +125,43 @@ class TestGetRecommendations:
         assert '$' in result
 
 
+
 # ---------------------------------------------------------------------------
-# Conversation state constants
+# /help handler
 # ---------------------------------------------------------------------------
+
+class TestHelpHandler:
+
+    def _make_message(self, chat_id=42):
+        """Return a minimal fake message object."""
+        msg = types.SimpleNamespace()
+        msg.chat = types.SimpleNamespace(id=chat_id)
+        return msg
+
+    def test_help_handler_sends_message(self):
+        """cmd_help should call bot.send_message with all four commands listed."""
+        sent = {}
+
+        def fake_send(chat_id, text, **kwargs):
+            sent['chat_id'] = chat_id
+            sent['text'] = text
+
+        bot_module.bot.send_message = fake_send
+        bot_module.cmd_help(self._make_message(chat_id=99))
+
+        assert sent['chat_id'] == 99
+        text = sent['text']
+        for cmd in ('/start', '/restart', '/cancel', '/help'):
+            assert cmd in text, f"Expected {cmd!r} in /help output"
+        assert 'Budget' in text or 'budget' in text.lower()
+
+    def test_help_handler_lists_brands(self):
+        """The /help message should mention available brands."""
+        sent = {}
+        bot_module.bot.send_message = lambda chat_id, text, **kw: sent.update(text=text)
+        bot_module.cmd_help(self._make_message())
+        # At least the first catalogue brand should appear
+        assert 'Toyota' in sent['text']
 
 class TestStateConstants:
 

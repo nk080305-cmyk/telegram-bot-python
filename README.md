@@ -31,13 +31,30 @@ This bot helps users find cars for sale by allowing them to search through vario
    pytest test_bot.py -v
    ```
 
+## Docker Deployment
+
+Build and run with a single command:
+
+```bash
+cp .env.example .env          # add your API_TOKEN
+docker compose up --build -d  # build image and start in background
+```
+
+Stop the bot:
+
+```bash
+docker compose down
+```
+
 ## Features
-- Search for available cars based on user input.
-- Receive real-time notifications for new car listings.
-- Filter results based on user preferences.
+- Multi-step conversation: budget → previous owners → brand → recommendations
+- Budget filtering with used-car discount (15 % per extra owner, capped at 75 %)
+- Case-insensitive brand matching
+- Input validation with helpful error messages
+- `/help`, `/start`, `/restart`, `/cancel` commands
 
 ## Usage
-- Start the bot by sending `/start` command. 
+- Start the bot by sending `/start` or type `/help` to see all available commands.
 - Follow the prompts to search for cars.
 
 ## Current Status / Текущий этап
@@ -51,13 +68,12 @@ This bot helps users find cars for sale by allowing them to search through vario
 - Used-car discount: 15 % price reduction per previous owner when filtering (capped at 75 %)
 - Case-insensitive brand matching: "bmw", "BMW", "Bmw" all resolve to BMW correctly
 - API token loaded from `.env` file via `python-dotenv`
-- `/cancel` and `/restart` commands supported
+- `/cancel`, `/restart`, `/help` commands supported
 - Unit tests (`test_bot.py`) covering all recommendation logic paths
+- Docker deployment via `Dockerfile` + `docker-compose.yml`
 
 ### ⬜ Pending
 - Integration with a real car listings database or external API
-- Unit tests and integration tests
-- Deployment configuration (e.g., Docker, systemd service, or cloud hosting)
 
 ## Contributing
 Feel free to open issues and submit pull requests to enhance the bot!
