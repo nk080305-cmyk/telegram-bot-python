@@ -141,6 +141,8 @@ Send `/start` (or `/help`) to the bot in Telegram and follow the prompts.
 
 ## Current Status / Текущий этап
 
+**🟢 Bot is operational / Бот работает**
+
 ### ✅ Completed
 - Single consolidated `bot.py` using `pyTelegramBotAPI`
 - Conversation flow with input validation
@@ -150,9 +152,6 @@ Send `/start` (or `/help`) to the bot in Telegram and follow the prompts.
 - Unit tests (14 tests, all passing)
 - Docker deployment (`Dockerfile` + `docker-compose.yml`)
 - Interactive `setup.sh` quickstart script
-
-### ⬜ Pending
-- Integration with a real car listings database or external API
 
 ## Contributing
 
