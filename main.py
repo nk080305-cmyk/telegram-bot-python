@@ -1,3 +1,4 @@
+import os
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler, CallbackContext
 
@@ -49,7 +50,10 @@ def cancel(update: Update, context: CallbackContext) -> int:
     return ConversationHandler.END
 
 def main():
-    updater = Updater("8544600427:AAFCHHUWToctTqRruO6yo-da1psoHkyS7go")
+    token = os.getenv('API_TOKEN')
+    if not token:
+        raise ValueError("API_TOKEN environment variable is not set.")
+    updater = Updater(token)
     
     dispatcher = updater.dispatcher
 

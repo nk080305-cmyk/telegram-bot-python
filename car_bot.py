@@ -1,7 +1,10 @@
+import os
 import telebot
 from telebot import types
 
-API_TOKEN = '8544600427:AAFCHHUWToctTqRruO6yo-da1psoHkyS7go'
+API_TOKEN = os.getenv('API_TOKEN')
+if not API_TOKEN:
+    raise ValueError("API_TOKEN environment variable is not set.")
 bot = telebot.TeleBot(API_TOKEN)
 
 @bot.message_handler(commands=['start'])
