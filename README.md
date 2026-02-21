@@ -17,7 +17,10 @@ This bot helps users find cars for sale by allowing them to search through vario
    - Create a new bot by chatting with [BotFather](https://telegram.me/botfather) on Telegram.
    - Save the token provided by BotFather.
 4. **Configure the bot:**
-   - Update the configuration file with your token.
+   - Create a `.env` file in the project root with your token:
+     ```
+     API_TOKEN=your_bot_token_here
+     ```
 5. **Run the bot:**
    ```bash
    python bot.py
@@ -35,17 +38,17 @@ This bot helps users find cars for sale by allowing them to search through vario
 ## Current Status / Текущий этап
 
 ### ✅ Completed
-- Basic bot structure created (`bot.py`, `car_bot.py`, `main.py`)
-- Conversation flow implemented: budget → number of owners → car brand
-- Sample car recommendation logic added (Toyota, BMW, Mercedes, Audi, Honda, Hyundai, Volkswagen, Ford, Mazda, Renault)
-
-### 🔄 In Progress
-- Consolidating three bot implementations into a single, clean `bot.py`
-- Moving API tokens out of source code and into environment variables (`.env` file)
+- Consolidated all three bot implementations into a single `bot.py` using `pyTelegramBotAPI`
+- Conversation flow: budget → number of previous owners → car brand → recommendations
+- Input validation: budget must be a positive integer; owner count must be a non-negative integer
+- Car catalogue with price data for 10 brands (Toyota, BMW, Mercedes, Audi, Honda, Hyundai, Volkswagen, Ford, Mazda, Renault)
+- Budget filtering: only shows models the user can afford
+- Used-car discount: 15 % price reduction per previous owner when filtering
+- API token loaded from `.env` file via `python-dotenv`
+- `/cancel` and `/restart` commands supported
 
 ### ⬜ Pending
 - Integration with a real car listings database or external API
-- Input validation (e.g., numeric budget, valid owner count)
 - Unit tests and integration tests
 - Deployment configuration (e.g., Docker, systemd service, or cloud hosting)
 
