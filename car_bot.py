@@ -1,31 +1,34 @@
-import requests
+import telebot
+from telebot import types
 
-class CarSelectionBot:
-    def __init__(self, budget, owner_count, brand):
-        self.budget = budget
-        self.owner_count = owner_count
-        self.brand = brand
-        self.urls = {
-            'auto.ru': 'https://auto.ru/cars/',
-            'drom.ru': 'https://www.drom.ru/',
-            'avvo.ru': 'https://avto.ru/'
-        }
+API_TOKEN = '8544600427:AAFCHHUWToctTqRruO6yo-da1psoHkyS7go'
+bot = telebot.TeleBot(API_TOKEN)
 
-    def get_car_links(self):
-        # This method would ideally use an API or scrape data to find cars
-        # For now, it returns linked sources based on the provided criteria
-        print(f"Searching for {self.brand} cars in the price range {self.budget} with {self.owner_count} owners...")
-        return self.urls
+@bot.message_handler(commands=['start'])
+def start(message):
+    bot.send_message(message.chat.id, "Welcome! What car are you looking for?")
 
-    def display_links(self):
-        links = self.get_car_links()
-        for site, url in links.items():
-            print(f"Check {site} for cars: {url}")
-
-# Example usage
-if __name__ == "__main__":
-    budget = int(input("Enter your budget: "))
-    owner_count = int(input("Enter number of owners (0 for new): "))
-    brand = input("Enter car brand: ")
-    car_bot = CarSelectionBot(budget, owner_count, brand)
-    car_bot.display_links()
+@bot.message_handler(func=lambda message: True)
+def car_selection(message):
+    bot.send_message(message.chat.id, "Let's find a car for you! Please tell me your budget.")
+    
+    @bot.message_handler(func=lambda message: True)
+    def budget_selection(message):
+        budget = message.text
+        # Here you would add logic to process the budget and respond to the user.
+        bot.send_message(message.chat.id, f"Great! You're looking for a car under {budget}.")
+        bot.send_message(message.chat.id, "Now, how many owners should the car have?")
+        
+        @bot.message_handler(func=lambda message: True)
+        def owners_selection(message):
+            owners = message.text
+            bot.send_message(message.chat.id, f"You're looking for a car that has had {owners} owners.")
+            bot.send_message(message.chat.id, "Finally, which brand do you prefer?")
+            
+            @bot.message_handler(func=lambda message: True)
+            def brand_selection(message):
+                brand = message.text
+                # Final response mimicking a search for a car based on criteria
+                bot.send_message(message.chat.id, f"Searching for a {brand} car under {budget} with {owners} owners.")
+    
+bot.polling()
