@@ -17,13 +17,18 @@ This bot helps users find cars for sale by allowing them to search through vario
    - Create a new bot by chatting with [BotFather](https://telegram.me/botfather) on Telegram.
    - Save the token provided by BotFather.
 4. **Configure the bot:**
-   - Create a `.env` file in the project root with your token:
+   - Create a `.env` file from the example:
+     ```bash
+     cp .env.example .env
      ```
-     API_TOKEN=your_bot_token_here
-     ```
+   - Replace `your_bot_token_here` with the token from BotFather.
 5. **Run the bot:**
    ```bash
    python bot.py
+   ```
+6. **Run tests:**
+   ```bash
+   pytest test_bot.py -v
    ```
 
 ## Features
@@ -43,9 +48,11 @@ This bot helps users find cars for sale by allowing them to search through vario
 - Input validation: budget must be a positive integer; owner count must be a non-negative integer
 - Car catalogue with price data for 10 brands (Toyota, BMW, Mercedes, Audi, Honda, Hyundai, Volkswagen, Ford, Mazda, Renault)
 - Budget filtering: only shows models the user can afford
-- Used-car discount: 15 % price reduction per previous owner when filtering
+- Used-car discount: 15 % price reduction per previous owner when filtering (capped at 75 %)
+- Case-insensitive brand matching: "bmw", "BMW", "Bmw" all resolve to BMW correctly
 - API token loaded from `.env` file via `python-dotenv`
 - `/cancel` and `/restart` commands supported
+- Unit tests (`test_bot.py`) covering all recommendation logic paths
 
 ### ⬜ Pending
 - Integration with a real car listings database or external API

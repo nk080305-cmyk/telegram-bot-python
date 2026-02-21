@@ -33,6 +33,14 @@ CAR_CATALOGUE: dict = {
 BRANDS_LIST = ', '.join(CAR_CATALOGUE.keys())
 
 
+def normalize_brand(text: str) -> str:
+    """Return the catalogue key that matches *text* case-insensitively, or title-case fallback."""
+    return next(
+        (k for k in CAR_CATALOGUE if k.upper() == text.upper()),
+        text.title(),
+    )
+
+
 def get_recommendations(budget: int, owners: int, brand: str) -> str:
     """Return a recommendation message based on budget, owners and brand."""
     models = CAR_CATALOGUE.get(brand)
@@ -117,7 +125,8 @@ def handle_text(message):
         )
 
     elif state == BRAND:
-        brand = message.text.strip().title()
+        typed = message.text.strip()
+        brand = normalize_brand(typed)
         result = get_recommendations(data['budget'], data['owners'], brand)
         bot.send_message(chat_id, result)
         user_state.pop(chat_id, None)
