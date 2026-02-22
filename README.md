@@ -165,6 +165,67 @@ Send `/start` (or `/help`) to the bot in Telegram and follow the prompts.
 | 8 | Docker deployment (`Dockerfile` + `docker-compose.yml`) | ✅ Done |
 | 9 | Interactive `setup.sh` quickstart script | ✅ Done |
 | 10 | Integration with a real car-listings database / external API | ⬜ Planned |
+| 11 | Inline keyboard buttons for brand selection | ⬜ Planned |
+| 12 | Persistent conversation state (Redis / SQLite) | ⬜ Planned |
+| 13 | Structured logging | ⬜ Planned |
+| 14 | Webhook mode for production | ⬜ Planned |
+| 15 | Russian-language bot messages (i18n) | ⬜ Planned |
+| 16 | Additional filters: year range and mileage | ⬜ Planned |
+| 17 | CI/CD pipeline (GitHub Actions) | ⬜ Planned |
+
+---
+
+## What's next / Что осталось сделать
+
+### 🔴 High priority
+
+1. **Real data source** (replaces the hardcoded catalogue)
+   Connect to a live car-listings API or database so prices and
+   availability are always up to date.
+   *Подключить реальную базу данных или внешний API с актуальными объявлениями.*
+
+2. **Inline keyboard buttons for brand selection**
+   Replace free-text brand input with Telegram inline keyboard buttons
+   so the user can simply tap a brand name.
+   *Заменить ввод марки текстом на кнопки Telegram-клавиатуры.*
+
+3. **Persistent conversation state**
+   `user_state` is currently an in-memory dict — all sessions are lost
+   on restart.  Replace with SQLite or Redis so conversations survive
+   restarts.
+   *`user_state` хранится в памяти и теряется при перезапуске.
+   Заменить на SQLite или Redis.*
+
+### 🟡 Medium priority
+
+4. **Structured logging**
+   Add Python `logging` (or `structlog`) to `bot.py` so errors and
+   warnings are captured and easy to diagnose in production.
+   *Добавить логирование (`logging` / `structlog`) для отладки в продакшне.*
+
+5. **Webhook mode for production**
+   The bot currently uses long-polling (`infinity_polling()`).
+   Add an optional webhook mode (e.g. via `aiohttp` or `Flask`) for
+   lower latency and better scalability.
+   *Добавить режим webhook для продакшн-развёртывания.*
+
+6. **Russian-language bot messages (i18n)**
+   The README is bilingual, but the bot only speaks English.
+   Add locale detection (or a `/lang` command) and translate all
+   bot messages to Russian.
+   *Добавить русскоязычные ответы бота (определение языка или команда `/lang`).*
+
+### 🟢 Low priority
+
+7. **Additional search filters**
+   Extend the conversation with optional year-range and maximum-mileage
+   filters so users can narrow down results further.
+   *Добавить фильтры по году выпуска и максимальному пробегу.*
+
+8. **CI/CD pipeline (GitHub Actions)**
+   Add a workflow that runs `pytest` automatically on every push /
+   pull request.
+   *Настроить GitHub Actions: запуск тестов при каждом push / pull request.*
 
 ## Contributing
 
