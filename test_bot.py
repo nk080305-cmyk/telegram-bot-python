@@ -29,8 +29,32 @@ def _load_bot_module():
                 return func
             return decorator
 
+        def callback_query_handler(self, **kwargs):
+            def decorator(func):
+                return func
+            return decorator
+
+    # Minimal inline-keyboard stubs so bot.py can import telebot.types
+    class _MockInlineKeyboardMarkup:
+        def __init__(self, row_width=3):
+            self.buttons = []
+
+        def add(self, *buttons):
+            self.buttons.extend(buttons)
+
+    class _MockInlineKeyboardButton:
+        def __init__(self, text, callback_data=None):
+            self.text = text
+            self.callback_data = callback_data
+
+    mock_types = types.ModuleType('telebot.types')
+    mock_types.InlineKeyboardMarkup = _MockInlineKeyboardMarkup
+    mock_types.InlineKeyboardButton = _MockInlineKeyboardButton
+
     mock_telebot.TeleBot = _MockBot
+    mock_telebot.types = mock_types
     sys.modules['telebot'] = mock_telebot
+    sys.modules['telebot.types'] = mock_types
 
     mock_dotenv = types.ModuleType('dotenv')
     mock_dotenv.load_dotenv = lambda: None
@@ -139,7 +163,7 @@ class TestHelpHandler:
         return msg
 
     def test_help_handler_sends_message(self):
-        """cmd_help should call bot.send_message with all four commands listed."""
+        """cmd_help should call bot.send_message with all five commands listed."""
         sent = {}
 
         def fake_send(chat_id, text, **kwargs):
@@ -151,7 +175,7 @@ class TestHelpHandler:
 
         assert sent['chat_id'] == 99
         text = sent['text']
-        for cmd in ('/start', '/restart', '/cancel', '/help'):
+        for cmd in ('/start', '/restart', '/cancel', '/list', '/help'):
             assert cmd in text, f"Expected {cmd!r} in /help output"
         assert 'Budget' in text or 'budget' in text.lower()
 
@@ -175,3 +199,108 @@ class TestStateConstants:
         assert bot_module.BUDGET == 0
         assert bot_module.OWNERS == 1
         assert bot_module.BRAND == 2
+
+
+# ---------------------------------------------------------------------------
+# /list handler
+# ---------------------------------------------------------------------------
+
+class TestListHandler:
+
+    def _make_message(self, chat_id=1):
+        msg = types.SimpleNamespace()
+        msg.chat = types.SimpleNamespace(id=chat_id)
+        return msg
+
+    def test_list_handler_sends_all_brands(self):
+        """cmd_list should mention every brand and include prices."""
+        sent = {}
+        bot_module.bot.send_message = lambda chat_id, text, **kw: sent.update(text=text)
+        bot_module.cmd_list(self._make_message())
+        text = sent['text']
+        for brand in CAR_CATALOGUE:
+            assert brand in text, f"Expected brand {brand!r} in /list output"
+
+    def test_list_handler_includes_prices(self):
+        """cmd_list output must contain dollar-sign prices."""
+        sent = {}
+        bot_module.bot.send_message = lambda chat_id, text, **kw: sent.update(text=text)
+        bot_module.cmd_list(self._make_message())
+        assert '$' in sent['text']
+
+    def test_list_handler_includes_models(self):
+        """cmd_list output should mention at least one model from each brand."""
+        sent = {}
+        bot_module.bot.send_message = lambda chat_id, text, **kw: sent.update(text=text)
+        bot_module.cmd_list(self._make_message())
+        text = sent['text']
+        for brand, models in CAR_CATALOGUE.items():
+            first_model = models[0][0]
+            assert first_model in text, f"Expected model {first_model!r} in /list output"
+
+
+# ---------------------------------------------------------------------------
+# Inline keyboard callback handler
+# ---------------------------------------------------------------------------
+
+class TestBrandCallbackHandler:
+
+    def _make_call(self, brand, chat_id=10, state=None):
+        """Return a minimal fake CallbackQuery object."""
+        call = types.SimpleNamespace()
+        call.id = 'cb_id_1'
+        call.data = f'brand_{brand}'
+        call.message = types.SimpleNamespace(chat=types.SimpleNamespace(id=chat_id))
+        return call
+
+    def _setup_user_state(self, chat_id, budget, owners):
+        bot_module.user_state[chat_id] = {
+            'state': bot_module.BRAND,
+            'budget': budget,
+            'owners': owners,
+        }
+
+    def test_callback_returns_recommendations(self):
+        """A valid brand callback should send recommendations to the user."""
+        chat_id = 200
+        self._setup_user_state(chat_id, 50000, 0)
+        messages = []
+        bot_module.bot.send_message = lambda cid, text, **kw: messages.append(text)
+        bot_module.bot.answer_callback_query = lambda call_id, text=None: None
+
+        call = self._make_call('Toyota', chat_id=chat_id)
+        bot_module.handle_brand_callback(call)
+
+        assert any('Toyota' in m for m in messages), "Expected Toyota recommendations"
+        assert chat_id not in bot_module.user_state, "State should be cleared after callback"
+
+    def test_callback_clears_state(self):
+        """After a successful callback the user's state entry should be removed."""
+        chat_id = 201
+        self._setup_user_state(chat_id, 30000, 1)
+        bot_module.bot.send_message = lambda cid, text, **kw: None
+        bot_module.bot.answer_callback_query = lambda call_id, text=None: None
+
+        bot_module.handle_brand_callback(self._make_call('Honda', chat_id=chat_id))
+        assert chat_id not in bot_module.user_state
+
+    def test_callback_expired_session(self):
+        """Callback with no active session should call answer_callback_query with a message."""
+        chat_id = 202
+        bot_module.user_state.pop(chat_id, None)  # ensure no session
+        answered = {}
+        bot_module.bot.answer_callback_query = lambda call_id, text=None: answered.update(text=text)
+        bot_module.bot.send_message = lambda cid, text, **kw: None
+
+        bot_module.handle_brand_callback(self._make_call('BMW', chat_id=chat_id))
+        assert answered.get('text') is not None, "Should answer with expiry notice"
+
+    def test_callback_all_brands(self):
+        """Callback handler should work for every brand in the catalogue."""
+        for idx, brand in enumerate(CAR_CATALOGUE):
+            chat_id = 300 + idx
+            self._setup_user_state(chat_id, 200000, 0)
+            bot_module.bot.send_message = lambda cid, text, **kw: None
+            bot_module.bot.answer_callback_query = lambda call_id, text=None: None
+            bot_module.handle_brand_callback(self._make_call(brand, chat_id=chat_id))
+            assert chat_id not in bot_module.user_state

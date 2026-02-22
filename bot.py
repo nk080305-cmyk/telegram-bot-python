@@ -1,5 +1,6 @@
 import os
 import telebot
+from telebot import types
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -92,6 +93,7 @@ def cmd_help(message):
         "/start — begin a new car search\n"
         "/restart — start over at any point\n"
         "/cancel — cancel the current search\n"
+        "/list — show all available brands and models\n"
         "/help — show this message\n\n"
         "During a search you will be asked for:\n"
         "1️⃣ Budget (USD)\n"
@@ -106,6 +108,20 @@ def cmd_cancel(message):
     chat_id = message.chat.id
     user_state.pop(chat_id, None)
     bot.send_message(chat_id, "Conversation cancelled. Type /start to begin again.")
+
+
+@bot.message_handler(commands=['list'])
+def cmd_list(message):
+    """Show all brands and their models with prices."""
+    lines = []
+    for brand, models in CAR_CATALOGUE.items():
+        model_str = ', '.join(f"{m} (${p:,})" for m, p in models)
+        lines.append(f"*{brand}*: {model_str}")
+    bot.send_message(
+        message.chat.id,
+        "🚗 *Available cars:*\n\n" + '\n'.join(lines),
+        parse_mode='Markdown',
+    )
 
 
 @bot.message_handler(func=lambda msg: True, content_types=['text'])
@@ -136,9 +152,16 @@ def handle_text(message):
             return
         data['owners'] = int(text)
         data['state'] = BRAND
+        markup = types.InlineKeyboardMarkup(row_width=3)
+        buttons = [
+            types.InlineKeyboardButton(brand, callback_data=f'brand_{brand}')
+            for brand in CAR_CATALOGUE
+        ]
+        markup.add(*buttons)
         bot.send_message(
             chat_id,
-            f"Which car brand are you interested in?\nAvailable: {BRANDS_LIST}"
+            f"Which car brand are you interested in?\nAvailable: {BRANDS_LIST}",
+            reply_markup=markup,
         )
 
     elif state == BRAND:
@@ -148,6 +171,24 @@ def handle_text(message):
         bot.send_message(chat_id, result)
         user_state.pop(chat_id, None)
         bot.send_message(chat_id, "Type /start to search again.")
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('brand_'))
+def handle_brand_callback(call):
+    """Handle brand selection from inline keyboard."""
+    chat_id = call.message.chat.id
+    data = user_state.get(chat_id)
+
+    if data is None or data.get('state') != BRAND:
+        bot.answer_callback_query(call.id, "Session expired. Use /start to begin again.")
+        return
+
+    brand = call.data.removeprefix('brand_')
+    result = get_recommendations(data['budget'], data['owners'], brand)
+    bot.answer_callback_query(call.id)
+    bot.send_message(chat_id, result)
+    user_state.pop(chat_id, None)
+    bot.send_message(chat_id, "Type /start to search again.")
 
 
 if __name__ == '__main__':
