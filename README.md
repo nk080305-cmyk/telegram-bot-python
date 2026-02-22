@@ -128,10 +128,11 @@ pytest test_bot.py -v
 ## Features / Возможности
 
 - Multi-step conversation: budget → previous owners → brand → recommendations
+- **Inline keyboard buttons** for brand selection (no typing required)
 - Budget filtering with used-car discount (15 % per extra owner, capped at 75 %)
 - Case-insensitive brand matching (toyota / TOYOTA / Toyota all work)
 - Input validation with helpful error messages
-- `/help`, `/start`, `/restart`, `/cancel` commands
+- `/help`, `/start`, `/restart`, `/cancel`, `/list` commands
 
 ## Usage
 
@@ -146,8 +147,9 @@ Send `/start` (or `/help`) to the bot in Telegram and follow the prompts.
 - Conversation flow with input validation
 - Car catalogue — 10 brands, budget + owner-count filtering
 - Case-insensitive brand matching via `normalize_brand()`
-- `/help`, `/cancel`, `/restart` commands
-- Unit tests (14 tests, all passing)
+- **Inline keyboard buttons** for brand selection
+- `/help`, `/cancel`, `/restart`, `/list` commands
+- Unit tests (21 tests, all passing)
 - Docker deployment (`Dockerfile` + `docker-compose.yml`)
 - Interactive `setup.sh` quickstart script
 
