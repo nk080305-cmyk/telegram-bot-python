@@ -164,6 +164,56 @@ class TestHelpHandler:
         first_brand = list(CAR_CATALOGUE.keys())[0]
         assert first_brand in sent['text']
 
+    def test_help_lists_status_command(self):
+        """The /help message should list the /status command."""
+        sent = {}
+        bot_module.bot.send_message = lambda chat_id, text, **kw: sent.update(text=text)
+        bot_module.cmd_help(self._make_message())
+        assert '/status' in sent['text']
+
+
+class TestStatusHandler:
+
+    def _make_message(self, chat_id=42):
+        msg = types.SimpleNamespace()
+        msg.chat = types.SimpleNamespace(id=chat_id)
+        return msg
+
+    def test_status_no_active_search(self):
+        bot_module.user_state.pop(1, None)
+        sent = {}
+        bot_module.bot.send_message = lambda chat_id, text, **kw: sent.update(chat_id=chat_id, text=text)
+        bot_module.cmd_status(self._make_message(chat_id=1))
+        assert 'No active search' in sent['text']
+
+    def test_status_budget_step(self):
+        bot_module.user_state[2] = {'state': bot_module.BUDGET}
+        sent = {}
+        bot_module.bot.send_message = lambda chat_id, text, **kw: sent.update(text=text)
+        bot_module.cmd_status(self._make_message(chat_id=2))
+        assert 'Step 1/3' in sent['text']
+        bot_module.user_state.pop(2, None)
+
+    def test_status_owners_step(self):
+        bot_module.user_state[3] = {'state': bot_module.OWNERS, 'budget': 25000}
+        sent = {}
+        bot_module.bot.send_message = lambda chat_id, text, **kw: sent.update(text=text)
+        bot_module.cmd_status(self._make_message(chat_id=3))
+        assert 'Step 2/3' in sent['text']
+        assert '25,000' in sent['text']
+        bot_module.user_state.pop(3, None)
+
+    def test_status_brand_step(self):
+        bot_module.user_state[4] = {'state': bot_module.BRAND, 'budget': 30000, 'owners': 1}
+        sent = {}
+        bot_module.bot.send_message = lambda chat_id, text, **kw: sent.update(text=text)
+        bot_module.cmd_status(self._make_message(chat_id=4))
+        assert 'Step 3/3' in sent['text']
+        assert '30,000' in sent['text']
+        assert 'Owners: 1' in sent['text']
+        bot_module.user_state.pop(4, None)
+
+
 class TestStateConstants:
 
     def test_state_constants_are_distinct(self):
