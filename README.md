@@ -141,18 +141,30 @@ Send `/start` (or `/help`) to the bot in Telegram and follow the prompts.
 
 ## Current Status / Текущий этап
 
-### ✅ Completed
-- Single consolidated `bot.py` using `pyTelegramBotAPI`
-- Conversation flow with input validation
-- Car catalogue — 10 brands, budget + owner-count filtering
-- Case-insensitive brand matching via `normalize_brand()`
-- `/help`, `/cancel`, `/restart` commands
-- Unit tests (14 tests, all passing)
-- Docker deployment (`Dockerfile` + `docker-compose.yml`)
-- Interactive `setup.sh` quickstart script
+> **Project stage / Этап проекта: MVP — feature-complete, ready for testing**
+>
+> The core functionality is fully implemented and covered by automated tests.
+> The next step is connecting a live car-listings data source.
+>
+> **Этап проекта: MVP — базовый функционал реализован, готово к тестированию**
+>
+> Основной функционал полностью реализован и покрыт автоматическими тестами.
+> Следующий шаг — подключение реальной базы данных или внешнего API с объявлениями.
 
-### ⬜ Pending
-- Integration with a real car listings database or external API
+### Roadmap / Дорожная карта
+
+| # | Feature / Функция | Status / Статус |
+|---|---|---|
+| 1 | Core bot (`bot.py`) with `pyTelegramBotAPI` | ✅ Done |
+| 2 | Multi-step conversation: budget → owners → brand | ✅ Done |
+| 3 | Car catalogue — 10 brands, budget + owner-count filtering | ✅ Done |
+| 4 | Case-insensitive brand matching (`normalize_brand()`) | ✅ Done |
+| 5 | Input validation with helpful error messages | ✅ Done |
+| 6 | `/help`, `/cancel`, `/restart` commands | ✅ Done |
+| 7 | Unit tests (14 tests, all passing) | ✅ Done |
+| 8 | Docker deployment (`Dockerfile` + `docker-compose.yml`) | ✅ Done |
+| 9 | Interactive `setup.sh` quickstart script | ✅ Done |
+| 10 | Integration with a real car-listings database / external API | ⬜ Planned |
 
 ## Contributing
 
