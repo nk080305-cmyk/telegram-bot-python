@@ -147,7 +147,7 @@ Send `/start` (or `/help`) to the bot in Telegram and follow the prompts.
 - Car catalogue — 10 brands, budget + owner-count filtering
 - Case-insensitive brand matching via `normalize_brand()`
 - `/help`, `/cancel`, `/restart`, `/status` commands
-- Unit tests (19 tests, all passing)
+- Unit tests (23 tests, all passing)
 - Docker deployment (`Dockerfile` + `docker-compose.yml`)
 - Interactive `setup.sh` quickstart script
 

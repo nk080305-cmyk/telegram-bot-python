@@ -174,9 +174,10 @@ class TestHelpHandler:
 
 class TestStatusHandler:
 
-    def _make_message(self, chat_id=42):
+    def _make_message(self, chat_id=42, text=''):
         msg = types.SimpleNamespace()
         msg.chat = types.SimpleNamespace(id=chat_id)
+        msg.text = text
         return msg
 
     def test_status_no_active_search(self):
@@ -212,6 +213,47 @@ class TestStatusHandler:
         assert '30,000' in sent['text']
         assert 'Owners: 1' in sent['text']
         bot_module.user_state.pop(4, None)
+
+
+class TestNaturalLanguageStatus:
+    """handle_text responds to 'на каком этапе' with the current status."""
+
+    def _make_message(self, chat_id, text):
+        msg = types.SimpleNamespace()
+        msg.chat = types.SimpleNamespace(id=chat_id)
+        msg.text = text
+        return msg
+
+    def test_russian_phrase_no_active_search(self):
+        bot_module.user_state.pop(10, None)
+        sent = {}
+        bot_module.bot.send_message = lambda chat_id, text, **kw: sent.update(text=text)
+        bot_module.handle_text(self._make_message(chat_id=10, text='на каком этапе'))
+        assert 'No active search' in sent['text']
+
+    def test_russian_phrase_budget_step(self):
+        bot_module.user_state[11] = {'state': bot_module.BUDGET}
+        sent = {}
+        bot_module.bot.send_message = lambda chat_id, text, **kw: sent.update(text=text)
+        bot_module.handle_text(self._make_message(chat_id=11, text='на каком этапе?'))
+        assert 'Step 1/3' in sent['text']
+        bot_module.user_state.pop(11, None)
+
+    def test_russian_phrase_owners_step(self):
+        bot_module.user_state[12] = {'state': bot_module.OWNERS, 'budget': 20000}
+        sent = {}
+        bot_module.bot.send_message = lambda chat_id, text, **kw: sent.update(text=text)
+        bot_module.handle_text(self._make_message(chat_id=12, text='На каком этапе'))
+        assert 'Step 2/3' in sent['text']
+        bot_module.user_state.pop(12, None)
+
+    def test_russian_phrase_brand_step(self):
+        bot_module.user_state[13] = {'state': bot_module.BRAND, 'budget': 40000, 'owners': 0}
+        sent = {}
+        bot_module.bot.send_message = lambda chat_id, text, **kw: sent.update(text=text)
+        bot_module.handle_text(self._make_message(chat_id=13, text='  На Каком Этапе  '))
+        assert 'Step 3/3' in sent['text']
+        bot_module.user_state.pop(13, None)
 
 
 class TestStateConstants:

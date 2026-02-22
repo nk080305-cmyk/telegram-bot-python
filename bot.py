@@ -109,15 +109,11 @@ def cmd_cancel(message):
     bot.send_message(chat_id, "Conversation cancelled. Type /start to begin again.")
 
 
-@bot.message_handler(commands=['status'])
-def cmd_status(message):
-    chat_id = message.chat.id
-    data = user_state.get(chat_id)
-
+def _send_status(chat_id, data) -> None:
+    """Send the current conversation step to *chat_id*."""
     if data is None:
         bot.send_message(chat_id, "No active search. Type /start to begin.")
         return
-
     state = data['state']
     if state == BUDGET:
         bot.send_message(chat_id, "Step 1/3 — Waiting for your budget (USD).")
@@ -134,10 +130,20 @@ def cmd_status(message):
         )
 
 
+@bot.message_handler(commands=['status'])
+def cmd_status(message):
+    _send_status(message.chat.id, user_state.get(message.chat.id))
+
+
 @bot.message_handler(func=lambda msg: True, content_types=['text'])
 def handle_text(message):
     chat_id = message.chat.id
     data = user_state.get(chat_id)
+
+    # Natural-language status query (e.g. "на каком этапе", "на каком этапе?")
+    if message.text.strip().lower().rstrip('?,!. ') == 'на каком этапе':
+        _send_status(chat_id, data)
+        return
 
     if data is None:
         bot.send_message(chat_id, "Type /start to begin.")
