@@ -92,6 +92,7 @@ def cmd_help(message):
         "/start — begin a new car search\n"
         "/restart — start over at any point\n"
         "/cancel — cancel the current search\n"
+        "/status — show current search step\n"
         "/help — show this message\n\n"
         "During a search you will be asked for:\n"
         "1️⃣ Budget (USD)\n"
@@ -108,10 +109,41 @@ def cmd_cancel(message):
     bot.send_message(chat_id, "Conversation cancelled. Type /start to begin again.")
 
 
+def _send_status(chat_id, data) -> None:
+    """Send the current conversation step to *chat_id*."""
+    if data is None:
+        bot.send_message(chat_id, "No active search. Type /start to begin.")
+        return
+    state = data['state']
+    if state == BUDGET:
+        bot.send_message(chat_id, "Step 1/3 — Waiting for your budget (USD).")
+    elif state == OWNERS:
+        bot.send_message(
+            chat_id,
+            f"Step 2/3 — Budget: ${data['budget']:,}. Waiting for number of previous owners."
+        )
+    elif state == BRAND:
+        bot.send_message(
+            chat_id,
+            f"Step 3/3 — Budget: ${data['budget']:,}, Owners: {data['owners']}. "
+            f"Waiting for brand.\nAvailable: {BRANDS_LIST}"
+        )
+
+
+@bot.message_handler(commands=['status'])
+def cmd_status(message):
+    _send_status(message.chat.id, user_state.get(message.chat.id))
+
+
 @bot.message_handler(func=lambda msg: True, content_types=['text'])
 def handle_text(message):
     chat_id = message.chat.id
     data = user_state.get(chat_id)
+
+    # Natural-language status query (e.g. "на каком этапе", "на каком этапе?")
+    if message.text.strip().lower().rstrip('?,!. ') == 'на каком этапе':
+        _send_status(chat_id, data)
+        return
 
     if data is None:
         bot.send_message(chat_id, "Type /start to begin.")
