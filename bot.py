@@ -1,4 +1,5 @@
 import os
+import re
 import telebot
 from dotenv import load_dotenv
 
@@ -16,6 +17,9 @@ BUDGET, OWNERS, BRAND = range(3)
 # In-memory state storage: {chat_id: {'state': int, 'budget': int, 'owners': int}}
 user_state: dict = {}
 
+# Last completed search per user: {chat_id: {'budget': int, 'owners': int, 'brand': str}}
+last_session: dict = {}
+
 # Car catalogue: brand -> list of (model, price)
 CAR_CATALOGUE: dict = {
     'Toyota':      [('Corolla', 20000), ('Camry', 28000), ('Hilux', 35000)],
@@ -31,6 +35,12 @@ CAR_CATALOGUE: dict = {
 }
 
 BRANDS_LIST = ', '.join(CAR_CATALOGUE.keys())
+
+# Natural-language phrase: "what changed since the last time I logged in" (Russian)
+_WHATS_NEW_QUERY = re.compile(
+    r'^\s*что\s+изменилось\s+с\s+последнего\s+раза\s+когда\s+я\s+заходил\s*[?,!.]*\s*$',
+    re.IGNORECASE,
+)
 
 
 def normalize_brand(text: str) -> str:
@@ -108,10 +118,34 @@ def cmd_cancel(message):
     bot.send_message(chat_id, "Conversation cancelled. Type /start to begin again.")
 
 
+def _send_whats_new(chat_id, last) -> None:
+    """Respond to the 'what changed since last time' natural-language query."""
+    if last is None:
+        bot.send_message(
+            chat_id,
+            "No previous search found. Type /start to begin your first search."
+        )
+        return
+    bot.send_message(
+        chat_id,
+        "The car catalogue has not changed since your last visit.\n\n"
+        f"Your last search:\n"
+        f"• Budget: ${last['budget']:,}\n"
+        f"• Previous owners: {last['owners']}\n"
+        f"• Brand: {last['brand']}\n\n"
+        "Type /start to search again."
+    )
+
+
 @bot.message_handler(func=lambda msg: True, content_types=['text'])
 def handle_text(message):
     chat_id = message.chat.id
     data = user_state.get(chat_id)
+
+    # Natural-language "what changed" query
+    if _WHATS_NEW_QUERY.match(message.text):
+        _send_whats_new(chat_id, last_session.get(chat_id))
+        return
 
     if data is None:
         bot.send_message(chat_id, "Type /start to begin.")
@@ -146,6 +180,7 @@ def handle_text(message):
         brand = normalize_brand(typed)
         result = get_recommendations(data['budget'], data['owners'], brand)
         bot.send_message(chat_id, result)
+        last_session[chat_id] = {'budget': data['budget'], 'owners': data['owners'], 'brand': brand}
         user_state.pop(chat_id, None)
         bot.send_message(chat_id, "Type /start to search again.")
 

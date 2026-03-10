@@ -51,6 +51,7 @@ bot_module = _load_bot_module()
 get_recommendations = bot_module.get_recommendations
 CAR_CATALOGUE = bot_module.CAR_CATALOGUE
 normalize_brand = bot_module.normalize_brand
+last_session = bot_module.last_session
 
 
 # ---------------------------------------------------------------------------
@@ -163,6 +164,83 @@ class TestHelpHandler:
         # Every brand in the catalogue should appear in the help text
         first_brand = list(CAR_CATALOGUE.keys())[0]
         assert first_brand in sent['text']
+
+
+class TestWhatsNew:
+    """handle_text responds to 'что изменилось с последнего раза когда я заходил'."""
+
+    def _make_message(self, chat_id, text):
+        msg = types.SimpleNamespace()
+        msg.chat = types.SimpleNamespace(id=chat_id)
+        msg.text = text
+        return msg
+
+    def test_no_previous_search(self):
+        bot_module.last_session.pop(20, None)
+        bot_module.user_state.pop(20, None)
+        sent = {}
+        bot_module.bot.send_message = lambda chat_id, text, **kw: sent.update(text=text)
+        bot_module.handle_text(self._make_message(
+            chat_id=20,
+            text='что изменилось с последнего раза когда я заходил'
+        ))
+        assert 'No previous search' in sent['text']
+
+    def test_previous_search_shown(self):
+        bot_module.last_session[21] = {'budget': 25000, 'owners': 1, 'brand': 'Honda'}
+        bot_module.user_state.pop(21, None)
+        sent = {}
+        bot_module.bot.send_message = lambda chat_id, text, **kw: sent.update(text=text)
+        bot_module.handle_text(self._make_message(
+            chat_id=21,
+            text='что изменилось с последнего раза когда я заходил'
+        ))
+        assert '25,000' in sent['text']
+        assert 'Honda' in sent['text']
+        assert 'Previous owners: 1' in sent['text']
+        bot_module.last_session.pop(21, None)
+
+    def test_phrase_with_punctuation(self):
+        bot_module.last_session.pop(22, None)
+        bot_module.user_state.pop(22, None)
+        sent = {}
+        bot_module.bot.send_message = lambda chat_id, text, **kw: sent.update(text=text)
+        bot_module.handle_text(self._make_message(
+            chat_id=22,
+            text='что изменилось с последнего раза когда я заходил?'
+        ))
+        assert 'No previous search' in sent['text']
+
+    def test_phrase_mixed_case(self):
+        bot_module.last_session.pop(23, None)
+        bot_module.user_state.pop(23, None)
+        sent = {}
+        bot_module.bot.send_message = lambda chat_id, text, **kw: sent.update(text=text)
+        bot_module.handle_text(self._make_message(
+            chat_id=23,
+            text='  Что Изменилось С Последнего Раза Когда Я Заходил  '
+        ))
+        assert 'No previous search' in sent['text']
+
+    def test_session_saved_after_completed_search(self):
+        """last_session is populated when a user completes the BRAND step."""
+        chat_id = 24
+        bot_module.user_state[chat_id] = {
+            'state': bot_module.BRAND,
+            'budget': 30000,
+            'owners': 0,
+        }
+        bot_module.last_session.pop(chat_id, None)
+        messages = []
+        bot_module.bot.send_message = lambda cid, text, **kw: messages.append(text)
+        bot_module.handle_text(self._make_message(chat_id=chat_id, text='Toyota'))
+        assert chat_id in bot_module.last_session
+        session = bot_module.last_session[chat_id]
+        assert session['budget'] == 30000
+        assert session['owners'] == 0
+        assert session['brand'] == 'Toyota'
+        bot_module.last_session.pop(chat_id, None)
+
 
 class TestStateConstants:
 
