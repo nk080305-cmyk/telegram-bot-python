@@ -9,6 +9,37 @@ the number of previous owners, and preferred brand.
 
 ---
 
+## 🚀 To launch the bot / Чтобы запустить бота
+
+> **The bot code is complete.** The only external step required is creating a
+> Telegram bot token with [@BotFather](https://t.me/botfather).
+>
+> **Код бота готов к работе.** Единственное внешнее действие — получить токен
+> у [@BotFather](https://t.me/botfather) в Telegram.
+
+### Fastest way (one command) / Самый быстрый способ (одна команда)
+
+```bash
+bash setup.sh
+```
+
+The script asks for your token, writes `.env`, installs dependencies, and starts the bot.  
+*Скрипт запросит токен, запишет `.env`, установит зависимости и запустит бота.*
+
+### Or manually (4 steps) / Или вручную (4 шага)
+
+| Step | Command / Action |
+|------|-----------------|
+| 1 — Get a token | Open Telegram → [@BotFather](https://t.me/botfather) → `/newbot` → copy the token |
+| 2 — Create `.env` | `cp .env.example .env` then paste your token as the `API_TOKEN` value |
+| 3 — Install deps | `pip install -r requirements.txt` |
+| 4 — Run | `python bot.py` |
+
+Once running, open Telegram, find your bot by its username and send `/start`.  
+*После запуска откройте Telegram, найдите своего бота по имени и отправьте `/start`.*
+
+---
+
 ## ⚠️ Security — keep your token private / Безопасность
 
 **Never share your `API_TOKEN` with anyone — including AI assistants.**
