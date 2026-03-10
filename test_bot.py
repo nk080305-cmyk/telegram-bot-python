@@ -175,3 +175,130 @@ class TestStateConstants:
         assert bot_module.BUDGET == 0
         assert bot_module.OWNERS == 1
         assert bot_module.BRAND == 2
+        assert bot_module.FEEDBACK == 3
+
+
+# ---------------------------------------------------------------------------
+# Feedback system tests
+# ---------------------------------------------------------------------------
+
+class TestFeedbackSystem:
+
+    def setup_method(self):
+        """Reset module-level state before each test."""
+        bot_module.user_state.clear()
+        bot_module.user_feedback.clear()
+
+    def _make_message(self, text, chat_id=1):
+        msg = types.SimpleNamespace()
+        msg.chat = types.SimpleNamespace(id=chat_id)
+        msg.text = text
+        return msg
+
+    def _patch_send(self):
+        sent = []
+        bot_module.bot.send_message = lambda chat_id, text, **kw: sent.append(text)
+        return sent
+
+    def test_valid_rating_is_stored(self):
+        """A rating between 1 and 5 is stored in user_feedback."""
+        sent = self._patch_send()
+        bot_module.user_state[1] = {
+            'state': bot_module.FEEDBACK,
+            'budget': 30000,
+            'owners': 0,
+            'brand': 'Toyota',
+        }
+        bot_module.handle_text(self._make_message('4'))
+        assert len(bot_module.user_feedback) == 1
+        assert bot_module.user_feedback[0]['rating'] == 4
+        assert bot_module.user_feedback[0]['brand'] == 'Toyota'
+        assert bot_module.user_feedback[0]['chat_id'] == 1
+
+    def test_valid_rating_shows_stars(self):
+        """Thank-you message includes the correct number of star emojis."""
+        sent = self._patch_send()
+        bot_module.user_state[1] = {
+            'state': bot_module.FEEDBACK,
+            'budget': 30000,
+            'owners': 0,
+            'brand': 'Honda',
+        }
+        bot_module.handle_text(self._make_message('3'))
+        thank_you = next(m for m in sent if 'Thank you' in m)
+        assert '⭐⭐⭐' in thank_you
+
+    def test_invalid_rating_reprompts(self):
+        """An out-of-range value keeps the user in FEEDBACK state."""
+        sent = self._patch_send()
+        bot_module.user_state[1] = {
+            'state': bot_module.FEEDBACK,
+            'budget': 30000,
+            'owners': 0,
+            'brand': 'BMW',
+        }
+        bot_module.handle_text(self._make_message('6'))
+        assert bot_module.user_state[1]['state'] == bot_module.FEEDBACK
+        assert len(bot_module.user_feedback) == 0
+        assert any('1 to 5' in m for m in sent)
+
+    def test_non_numeric_feedback_reprompts(self):
+        """Non-numeric input keeps the user in FEEDBACK state."""
+        sent = self._patch_send()
+        bot_module.user_state[1] = {
+            'state': bot_module.FEEDBACK,
+            'budget': 30000,
+            'owners': 0,
+            'brand': 'Audi',
+        }
+        bot_module.handle_text(self._make_message('great'))
+        assert bot_module.user_state[1]['state'] == bot_module.FEEDBACK
+        assert len(bot_module.user_feedback) == 0
+
+    def test_rating_clears_state(self):
+        """After a valid rating, the user's state is cleared."""
+        self._patch_send()
+        bot_module.user_state[1] = {
+            'state': bot_module.FEEDBACK,
+            'budget': 30000,
+            'owners': 0,
+            'brand': 'Ford',
+        }
+        bot_module.handle_text(self._make_message('5'))
+        assert 1 not in bot_module.user_state
+
+    def test_skip_command_in_feedback_state(self):
+        """The /skip command clears FEEDBACK state without storing any rating."""
+        sent = self._patch_send()
+        bot_module.user_state[1] = {
+            'state': bot_module.FEEDBACK,
+            'budget': 30000,
+            'owners': 0,
+            'brand': 'Mazda',
+        }
+        msg = self._make_message('/skip')
+        msg.chat.id = 1
+        bot_module.cmd_skip(msg)
+        assert 1 not in bot_module.user_state
+        assert len(bot_module.user_feedback) == 0
+        assert any('skipped' in m.lower() for m in sent)
+
+    def test_skip_command_outside_feedback_state(self):
+        """/skip outside feedback state sends an informative message."""
+        sent = self._patch_send()
+        msg = self._make_message('/skip')
+        msg.chat.id = 1
+        bot_module.cmd_skip(msg)
+        assert any('Nothing to skip' in m for m in sent)
+
+    def test_brand_state_transitions_to_feedback(self):
+        """After entering a brand, the state advances to FEEDBACK."""
+        sent = self._patch_send()
+        bot_module.user_state[1] = {
+            'state': bot_module.BRAND,
+            'budget': 50000,
+            'owners': 0,
+        }
+        bot_module.handle_text(self._make_message('Toyota'))
+        assert bot_module.user_state[1]['state'] == bot_module.FEEDBACK
+        assert any('1–5' in m or '1-5' in m for m in sent)
