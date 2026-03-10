@@ -11,10 +11,13 @@ if not API_TOKEN:
 bot = telebot.TeleBot(API_TOKEN)
 
 # Conversation states
-BUDGET, OWNERS, BRAND = range(3)
+BUDGET, OWNERS, BRAND, FEEDBACK = range(4)
 
 # In-memory state storage: {chat_id: {'state': int, 'budget': int, 'owners': int}}
 user_state: dict = {}
+
+# Feedback storage: list of {'chat_id': int, 'rating': int, 'brand': str}
+user_feedback: list = []
 
 # Car catalogue: brand -> list of (model, price)
 CAR_CATALOGUE: dict = {
@@ -92,11 +95,13 @@ def cmd_help(message):
         "/start — begin a new car search\n"
         "/restart — start over at any point\n"
         "/cancel — cancel the current search\n"
+        "/skip — skip the feedback rating step\n"
         "/help — show this message\n\n"
         "During a search you will be asked for:\n"
         "1️⃣ Budget (USD)\n"
         "2️⃣ Number of previous owners\n"
-        f"3️⃣ Brand — choose from: {BRANDS_LIST}",
+        f"3️⃣ Brand — choose from: {BRANDS_LIST}\n"
+        "4️⃣ Rating (1–5 stars) for the recommendations",
         parse_mode='Markdown',
     )
 
@@ -106,6 +111,17 @@ def cmd_cancel(message):
     chat_id = message.chat.id
     user_state.pop(chat_id, None)
     bot.send_message(chat_id, "Conversation cancelled. Type /start to begin again.")
+
+
+@bot.message_handler(commands=['skip'])
+def cmd_skip(message):
+    chat_id = message.chat.id
+    data = user_state.get(chat_id)
+    if data and data.get('state') == FEEDBACK:
+        user_state.pop(chat_id, None)
+        bot.send_message(chat_id, "Feedback skipped. Type /start to search again.")
+    else:
+        bot.send_message(chat_id, "Nothing to skip. Type /start to begin a search.")
 
 
 @bot.message_handler(func=lambda msg: True, content_types=['text'])
@@ -146,6 +162,28 @@ def handle_text(message):
         brand = normalize_brand(typed)
         result = get_recommendations(data['budget'], data['owners'], brand)
         bot.send_message(chat_id, result)
+        data['brand'] = brand
+        data['state'] = FEEDBACK
+        bot.send_message(
+            chat_id,
+            "How would you rate these recommendations? (1–5, or /skip to skip)\n"
+            "⭐ 1 — Poor   ⭐⭐ 2 — Fair   ⭐⭐⭐ 3 — Good\n"
+            "⭐⭐⭐⭐ 4 — Very good   ⭐⭐⭐⭐⭐ 5 — Excellent"
+        )
+
+    elif state == FEEDBACK:
+        text = message.text.strip()
+        if not text.isdigit() or not (1 <= int(text) <= 5):
+            bot.send_message(chat_id, "Please enter a number from 1 to 5, or /skip to skip.")
+            return
+        rating = int(text)
+        user_feedback.append({
+            'chat_id': chat_id,
+            'rating': rating,
+            'brand': data.get('brand', ''),
+        })
+        stars = '⭐' * rating
+        bot.send_message(chat_id, f"Thank you for your feedback! You rated: {stars}")
         user_state.pop(chat_id, None)
         bot.send_message(chat_id, "Type /start to search again.")
 
